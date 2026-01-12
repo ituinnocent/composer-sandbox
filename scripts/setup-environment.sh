@@ -1,5 +1,4 @@
 #!/bin/bash
-# scripts/setup-environment.sh
 # This script runs the PHP Setup class
 
 echo "🚀 Running environment setup..."

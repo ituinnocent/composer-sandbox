@@ -1,5 +1,5 @@
 <?php
-// src/Setup.php
+
 namespace MyProject;
 
 class Setup
@@ -136,17 +136,40 @@ ENV;
         $primaryDomain = trim($domains[0]);
 
         $sslDir = dirname(__DIR__, 2) . '/ssl';
+
+        // Create SSL directory if it doesn't exist
+        if (!file_exists($sslDir)) {
+            mkdir($sslDir, 0755, true);
+            echo "📁 Created SSL directory. Checking SSL files...\n";
+        } else {
+            echo "📁 SSL directory exits. Checking SSL files...\n";
+        }
+
         $certFile = "$sslDir/$primaryDomain.crt";
         $keyFile = "$sslDir/$primaryDomain.key";
 
+        // Check if valid SSL files already exist
         if (file_exists($certFile) && file_exists($keyFile)) {
-            echo "🔒 SSL certificates already exist for $primaryDomain\n";
-            return;
+            $certContent = file_get_contents($certFile);
+            $keyContent = file_get_contents($keyFile);
+
+            if (
+                !empty($certContent) && !empty($keyContent) &&
+                strpos($certContent, 'BEGIN CERTIFICATE') !== false
+            ) {
+                echo "🔒 Valid SSL certificates exist for $primaryDomain\n";
+                return;
+            } else {
+                echo "⚠️  SSL files exist but are invalid/empty. Regenerating...\n";
+                unlink($certFile);
+                unlink($keyFile);
+            }
         }
 
+        // Generate new SSL certificates
         echo "🔐 Generating SSL certificate for $primaryDomain...\n";
 
-        // Create SSL config
+        // Try PHP openssl first
         $sslConfig = [
             'digest_alg' => 'sha256',
             'private_key_bits' => 2048,

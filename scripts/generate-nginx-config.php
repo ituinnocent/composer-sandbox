@@ -16,6 +16,7 @@ if (empty($domains)) {
 }
 
 echo "📋 Domains: " . implode(', ', $domains) . "\n";
+echo "Auto-generated Nginx configuration" . "\n";
 
 $config = <<<NGINX
 # Auto-generated Nginx configuration
@@ -23,7 +24,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name {DOMAINS};
-    
+
     return 301 https://\$server_name\$request_uri;
 }
 
@@ -31,17 +32,17 @@ server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name {DOMAINS};
-    
+
     ssl_certificate /etc/ssl/{PRIMARY_DOMAIN}.crt;
     ssl_certificate_key /etc/ssl/{PRIMARY_DOMAIN}.key;
-    
+
     root /var/www/html/web;
     index index.php;
-    
+
     location / {
         try_files \$uri \$uri/ /index.php?\$args;
     }
-    
+
     location ~ \.php\$ {
         fastcgi_pass wordpress:9000;
         include fastcgi_params;
