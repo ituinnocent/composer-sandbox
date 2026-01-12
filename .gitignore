@@ -1,9 +1,24 @@
+# Docker
 vendor/
 web/
 ssl/
-*.env
+.env
 *.backup
 logs/
 data/
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-GITIGNORE
+Thumbs.db
+
+# WordPress
+wp-config.php
+debug.log
