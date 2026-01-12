@@ -1,0 +1,107 @@
+# docker-compose.yml
+
+services:
+  # Nginx proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ${APP_NAME}-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./config/nginx/sites:/etc/nginx/sites-enabled:ro
+      - ./ssl:/etc/ssl:ro
+      - ./web:/var/www/html:ro
+    depends_on:
+      - wordpress
+    restart: unless-stopped
+    networks:
+      - wp-network
+
+  # WordPress PHP-FPM
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile.alpine
+      args:
+        INSTALL_XDEBUG: ${INSTALL_XDEBUG:-false}
+    container_name: ${APP_NAME}-wp
+    volumes:
+      - ./web:/var/www/html:rw,cached
+      - ./config/php/light.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+    environment:
+      WORDPRESS_DB_HOST: mysql
+      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress}
+      WORDPRESS_DB_USER: ${DB_USER:-wordpress}
+      WORDPRESS_DB_PASSWORD: ${DB_PASSWORD:-wordpresspassword}
+      WORDPRESS_TABLE_PREFIX: ${DB_TABLE_PREFIX:-wp_}
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    networks:
+      - wp-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+  mysql:
+    image: mariadb:10.11-alpine
+    container_name: ${APP_NAME}-db
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-log-bin
+      - --performance-schema=OFF
+    volumes:
+      - mysql_data:/var/lib/mysql:delegated
+      - ./config/mysql/light.cnf:/etc/mysql/my.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-wordpress}
+      MYSQL_USER: ${DB_USER:-wordpress}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-wordpresspassword}
+    restart: unless-stopped
+    networks:
+      - wp-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:fpm-alpine
+    container_name: ${APP_NAME}-pma
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 32M
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    restart: "no"
+    networks:
+      - wp-network
+
+networks:
+  wp-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

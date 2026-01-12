@@ -1,0 +1,64 @@
+# Dockerfile.alpine - Ultra lightweight WordPress
+FROM wordpress:php8.2-fpm-alpine
+
+# Build arguments for optional features
+ARG INSTALL_XDEBUG=false
+
+# Install ONLY essentials
+RUN apk update && apk add --no-cache \
+    # Required for WordPress
+    libpng-dev \
+    libjpeg-turbo-dev \
+    libzip-dev \
+    oniguruma-dev \
+    # Required for extensions
+    freetype-dev \
+    # Minimal build tools (remove after install)
+    autoconf g++ make
+
+# Install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        mysqli \
+        gd \
+        zip \
+        mbstring \
+        opcache
+
+# Install XDebug if requested
+RUN if [ "$INSTALL_XDEBUG" = "true" ]; then \
+    apk add --no-cache $PHPIZE_DEPS \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug \
+    && apk del $PHPIZE_DEPS; \
+fi
+
+# Cleanup build tools to reduce image size
+RUN apk del autoconf g++ make \
+    && rm -rf /var/cache/apk/*
+
+# Optimize PHP-FPM for low memory
+RUN { \
+    echo '[www]'; \
+    echo 'pm = dynamic'; \
+    echo 'pm.max_children = 5'; \
+    echo 'pm.start_servers = 2'; \
+    echo 'pm.min_spare_servers = 1'; \
+    echo 'pm.max_spare_servers = 3'; \
+    echo 'pm.max_requests = 500'; \
+    } > /usr/local/etc/php-fpm.d/zzz-optimize.conf
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD php -v || exit 1
+
+# Use custom entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php-fpm"]

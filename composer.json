@@ -1,0 +1,88 @@
+{
+  "name": "ituinnocent/my-website",
+  "description": "WordPress website with Docker",
+  "type": "project",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Your Name",
+      "email": "your.email@example.com"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://wpackagist.org"
+    },
+    {
+      "type": "composer",
+      "url": "https://packagist.org"
+    }
+  ],
+  "require": {
+    "johnpbloch/wordpress": "6.4.*",
+    "wpackagist-plugin/advanced-custom-fields": "^6.0",
+    "wpackagist-plugin/wordpress-seo": "^20.0",
+    "monolog/monolog": "^3.0",
+    "vlucas/phpdotenv": "^5.5"
+  },
+  "require-dev": {
+    "wpackagist-plugin/query-monitor": "^3.0",
+    "wpackagist-plugin/wp-mail-smtp": "^3.0",
+    "phpunit/phpunit": "^9.0"
+  },
+  "extra": {
+    "wordpress-install-dir": "web/wp",
+    "installer-paths": {
+      "web/wp-content/plugins/{$name}/": [
+        "type:wordpress-plugin"
+      ],
+      "web/wp-content/themes/{$name}/": [
+        "type:wordpress-theme"
+      ],
+      "web/wp-content/mu-plugins/{$name}/": [
+        "type:wordpress-mu-plugin"
+      ]
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "MyProject\\": "src/"
+    },
+    "files": [
+      "src/functions.php",
+      "src/helpers.php"
+    ]
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@setup-environment"
+    ],
+    "post-update-cmd": [
+      "@setup-environment"
+    ],
+    "setup-environment": "MyProject\\Setup::setupEnvironment",
+    "generate-nginx": "php scripts/generate-nginx-config.php",
+    "setup-hosts": "php scripts/setup-hosts.php",
+    "setup": [
+      "@setup-environment",
+      "@generate-nginx",
+      "@setup-hosts"
+    ],
+    "docker-up": "docker-compose up -d --build",
+    "docker-down": "docker-compose down",
+    "docker-logs": "docker-compose logs -f",
+    "test": "echo 'Run: composer docker-up then composer wp'"
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true,
+      "johnpbloch/wordpress-core-installer": true
+    },
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}

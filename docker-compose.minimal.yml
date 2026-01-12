@@ -1,0 +1,32 @@
+# docker-compose.minimal.yml
+
+services:
+  wordpress:
+    image: wordpress:php8.2-apache # Apache includes PHP, no separate PHP-FPM needed
+    container_name: ${APP_NAME:-wordpress}-minimal
+    ports:
+      - "80:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      WORDPRESS_DB_NAME: ${DB_NAME:-wordpress}
+    depends_on:
+      - db
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.3"
+
+  db:
+    image: mysql:8.0-alpine
+    container_name: ${APP_NAME:-wordpress}-db-minimal
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-wordpress}
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.3"

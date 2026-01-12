@@ -1,0 +1,9 @@
+vendor/
+web/
+ssl/
+*.env
+*.backup
+logs/
+data/
+.DS_Store
+GITIGNORE
